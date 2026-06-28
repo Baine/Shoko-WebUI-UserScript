@@ -45,9 +45,9 @@ Open the installed script and edit the `CONFIG` object at the top:
 
 ```javascript
 var CONFIG = {
-  // Set to your ShokoServer host, e.g. "share.local" or "192.168.1.100:8111"
+  // Set to your ShokoServer host, e.g. "box.net" or "192.168.1.100:8111"
   // Leave empty ('') to auto-detect from the current page hostname
-  serverHost: 'share.local',
+  serverHost: '',
 
   // Optional reverse proxy sub-path, e.g. "/proxy/v2/client"
   serverSubPath: '',
@@ -80,7 +80,7 @@ Play buttons are hidden by default and only appear when hovering over a card.
 
 The userscript injects play buttons into the WebUI DOM. When clicked, each button opens a `shoko:` URL which triggers the Shoko Companion app (via the registered `shoko://` URL scheme handler). The companion then handles playback through mpv.
 
-Example URL: `shoko://share.local:8111/play?playlist=s4510`
+Example URL: `shoko://box.net:8111/play?playlist=s4510`
 
 ## License
 

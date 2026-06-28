@@ -140,7 +140,6 @@
       /* right-side overlay button – always hidden, shown via group-hover */
       '.shoko-right-btn{top:50%;right:.5rem;transform:translateY(-50%);}' +
       '.shoko-right-btn:hover{transform:translateY(-50%) scale(1.2);}'
-
     document.head.appendChild(s)
   }
 
@@ -188,25 +187,28 @@
   // 1. Collection – Poster view
   //    Rendered by PosterViewItem.tsx
   //    Structure:
-  //      <div style="width:12.938rem">              ← card wrapper
+  //      <div style="width:12.938rem">              ← card wrapper (has flex.shrink-0.flex-col)
   //        <Link>
   //          <BackgroundImagePlaceholderDiv        ← poster (has group class, h-76)
-  //            <div class="...overlay...">          ← hover overlay (pencil button)
+  //            <div><!-- unwatched badge --></div>
+  //            <div class="bg-panel-background-poster-overlay opacity-0 transition-opacity group-hover:opacity-100">
+  //              <Button><!-- pencil --></Button>
+  //            </div>
   //          </BackgroundImagePlaceholderDiv>
   //          <Link><!-- title --></Link>
   //        </Link>
   //      </div>
   // --------------------------------------------------------------------------
-  function processPosterViewItem (poster) {
-    if (isProcessed(poster)) return
+  function processPosterViewItem (cardWrapper) {
+    if (isProcessed(cardWrapper)) return
     if (!CONFIG.showSeriesPlayButton) return
-    markProcessed(poster)
+    markProcessed(cardWrapper)
 
     // Find the <Link> wrapping the poster
-    var wrapper = poster.closest('a') || poster.parentElement
-    if (!wrapper) return
+    var link = cardWrapper.querySelector('a')
+    if (!link) return
 
-    var seriesId = seriesIdFromLink(wrapper)
+    var seriesId = seriesIdFromLink(link)
     if (!seriesId) return
 
     var shokoUrl = buildShokoUrl('s' + seriesId)
@@ -215,8 +217,19 @@
     var btn = createPlayButton(shokoUrl, 'Play series with Shoko Companion')
     btn.className += ' shoko-center-btn'
 
-    // Inject into the poster so it appears in the hover overlay area
-    poster.appendChild(btn)
+    // Find the existing overlay div inside the poster
+    // PosterViewItem creates its own overlay with these classes
+    var overlay = cardWrapper.querySelector('div.bg-panel-background-poster-overlay')
+    if (overlay) {
+      overlay.appendChild(btn)
+      return
+    }
+
+    // Fallback: any overlay div with group-hover opacity
+    overlay = cardWrapper.querySelector('div[class*="group-hover:opacity-100"]')
+    if (overlay) {
+      overlay.appendChild(btn)
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -250,10 +263,24 @@
     var btn = createPlayButton(shokoUrl, 'Play series with Shoko Companion')
     btn.className += ' shoko-center-btn'
 
-    // The poster container is the BackgroundImagePlaceholderDiv
-    var poster = card.querySelector('div[class*="13.438rem"]')
+    // The poster container is the BackgroundImagePlaceholderDiv with h-[13.438rem]
+    // It has the overlay div inside it
+    var poster = card.querySelector('div[style*="13.438rem"], div[class*="13.438rem"]')
     if (poster) {
-      poster.appendChild(btn)
+      // Find overlay inside poster
+      var overlay = poster.querySelector('div.bg-panel-background-poster-overlay')
+      if (overlay) {
+        overlay.appendChild(btn)
+      } else {
+        // Create fallback overlay
+        var newOverlay = document.createElement('div')
+        newOverlay.className =
+          'pointer-events-none z-50 flex h-full items-center justify-center ' +
+          'bg-panel-background-poster-overlay opacity-0 transition-opacity ' +
+          'group-hover:pointer-events-auto group-hover:opacity-100'
+        newOverlay.appendChild(btn)
+        poster.appendChild(newOverlay)
+      }
     }
   }
 
@@ -298,11 +325,18 @@
     btn.className += ' shoko-right-btn'
 
     // Inject into the hover overlay layer inside the thumbnail
-    var overlay = thumb.querySelector('div[class*="poster-overlay"]')
+    var overlay = thumb.querySelector('div.bg-panel-background-poster-overlay')
     if (overlay) {
       overlay.appendChild(btn)
     } else {
-      thumb.appendChild(btn)
+      // Create fallback overlay
+      var newOverlay = document.createElement('div')
+      newOverlay.className =
+        'pointer-events-none z-50 flex h-full items-center justify-center ' +
+        'bg-panel-background-poster-overlay opacity-0 transition-opacity ' +
+        'group-hover:pointer-events-auto group-hover:opacity-100'
+      newOverlay.appendChild(btn)
+      thumb.appendChild(newOverlay)
     }
   }
 
@@ -339,11 +373,17 @@
     var btn = createPlayButton(shokoUrl, 'Play next-up with Shoko Companion')
     btn.className += ' shoko-center-btn'
 
-    var overlay = thumb.querySelector('div[class*="poster-overlay"]')
+    var overlay = thumb.querySelector('div.bg-panel-background-poster-overlay')
     if (overlay) {
       overlay.appendChild(btn)
     } else {
-      thumb.appendChild(btn)
+      var newOverlay = document.createElement('div')
+      newOverlay.className =
+        'pointer-events-none z-50 flex h-full items-center justify-center ' +
+        'bg-panel-background-poster-overlay opacity-0 transition-opacity ' +
+        'group-hover:pointer-events-auto group-hover:opacity-100'
+      newOverlay.appendChild(btn)
+      thumb.appendChild(newOverlay)
     }
   }
 
@@ -386,10 +426,9 @@
     if (!CONFIG.showSeriesPlayButton) return
 
     var seriesId = seriesIdFromLink(item)
-    if (!seriesId) { console.log('[Shoko Play] dashboard-episode NO seriesId'); return }
+    if (!seriesId) return
 
     var shokoUrl = buildShokoUrl('s' + seriesId)
-    console.log('[Shoko Play] dashboard-episode seriesId=' + seriesId + ' url=' + shokoUrl)
     if (!shokoUrl) return
 
     var btn = createPlayButton(shokoUrl, 'Play series with Shoko Companion')
@@ -402,12 +441,10 @@
     // BackgroundImagePlaceholderDiv with overlayOnHover has the overlay div
     var overlay = innerWrapper.querySelector('div.bg-panel-background-poster-overlay')
     if (overlay) {
-      console.log('[Shoko Play] dashboard-episode overlay found')
       overlay.appendChild(btn)
     } else {
       var wrapper = innerWrapper.querySelector('.relative')
       if (wrapper) {
-        console.log('[Shoko Play] dashboard-episode no overlay, creating fallback')
         var newOverlay = document.createElement('div')
         newOverlay.className =
           'pointer-events-none z-50 flex h-full items-center justify-center ' +
@@ -432,17 +469,15 @@
     if (!CONFIG.showSeriesPlayButton) return
 
     var seriesId = seriesIdFromLink(card)
-    if (!seriesId) { console.log('[Shoko Play] dashboard-series NO seriesId'); return }
+    if (!seriesId) return
 
     // Skip Upcoming Anime panel
     if (insidePanelWithTitle(card, 'Upcoming Anime')) {
-      console.log('[Shoko Play] dashboard-series SKIPPED (Upcoming Anime)')
       markProcessed(card)
       return
     }
 
     var shokoUrl = buildShokoUrl('s' + seriesId)
-    console.log('[Shoko Play] dashboard-series seriesId=' + seriesId + ' url=' + shokoUrl)
     if (!shokoUrl) return
 
     var btn = createPlayButton(shokoUrl, 'Play series with Shoko Companion')
@@ -451,13 +486,11 @@
     // BackgroundImagePlaceholderDiv with overlayOnHover has the overlay div
     var overlay = card.querySelector('div.bg-panel-background-poster-overlay')
     if (overlay) {
-      console.log('[Shoko Play] dashboard-series overlay found')
       overlay.appendChild(btn)
     } else {
       // Fallback: create an overlay div with hover visibility
       var wrapper = card.querySelector('.relative')
       if (wrapper) {
-        console.log('[Shoko Play] dashboard-series no overlay, creating fallback')
         var newOverlay = document.createElement('div')
         newOverlay.className =
           'pointer-events-none z-50 flex h-full items-center justify-center ' +
@@ -477,11 +510,15 @@
 
   function processAll () {
     // 1. Collection poster view items
-    //    Look for BackgroundImagePlaceholderDiv with poster dimensions
-    document.querySelectorAll('div.h-76').forEach(processPosterViewItem)
+    //    Card wrapper is <div style="width:12.938rem">
+    document.querySelectorAll('div[style*="12.938rem"]').forEach(function (el) {
+      if (el.querySelector('a')) {
+        processPosterViewItem(el)
+      }
+    })
 
     // 2. Collection list view items
-    //    Card wrappers containing a link to /series/
+    //    Card wrapper has a link to /series/ and inner poster
     document.querySelectorAll('div[class*="h-full"]').forEach(function (el) {
       if (el.querySelector('a[href*="/series/"]')) {
         processListViewItem(el)
@@ -498,15 +535,16 @@
     })
 
     // 4. Series overview next-up
+    //    Inside series overview page, find cards with thumbnail
     document.querySelectorAll('div[class*="p-4"], div[class*="p-6"]').forEach(processOverviewNextUp)
 
     // 5. Dashboard episode cards – <a> tags with w-115 class
     //    DashboardEpisode: <a class="group flex w-115 shrink-0 flex-col justify-center">
     document.querySelectorAll('a[class*="w-115"]').forEach(function (el) {
       var href = el.getAttribute('href') || ''
-      if (!href.match(/\/series\/\d+/)) return
-      console.log('[Shoko Play] dashboard-episode href=' + href + ' classList=' + el.className)
-      processDashboardEpisode(el)
+      if (href.match(/\/series\/\d+/)) {
+        processDashboardEpisode(el)
+      }
     })
 
     // 6. Dashboard series cards – <a> tags with w-56 class
@@ -519,7 +557,6 @@
       // Skip Upcoming Anime panel
       if (insidePanelWithTitle(el, 'Upcoming Anime')) return
 
-      console.log('[Shoko Play] dashboard-series href=' + href + ' classList=' + el.className)
       processDashboardSeries(el)
     })
   }

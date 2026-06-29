@@ -76,11 +76,26 @@ var CONFIG = {
 
 Play buttons are hidden by default and only appear when hovering over a card.
 
+## Disclaimer
+
+**This project is provided without warranty of any kind, express or implied.** Use at your own risk.
+
 ## How it works
 
 The userscript injects play buttons into the WebUI DOM. When clicked, each button opens a `shoko:` URL which triggers the Shoko Companion app (via the registered `shoko://` URL scheme handler). The companion then handles playback through mpv.
 
-Example URL: `shoko://box.net:8111/play?playlist=s4510`
+Example URL: `shoko://share.local:8111/play?playlist=s4510`
+
+## Disclaimer
+
+**This project is provided without warranty of any kind, express or implied.** Use at your own risk.
+
+## Generated with
+
+This script was generated with AI assistance using:
+- [opencode](https://github.com/anomalyco/opencode) – code generation agent
+- [llama.cp](https://github.com/Mozilla-Ocho/llama.cpp) – inference runtime
+- [unsloth/Qwen3.6-35B-A3B-GGUF:Q8_K_XL](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF) on Hugging Face – model used
 
 ## License
 

@@ -11,60 +11,18 @@
 ;(function () {
   'use strict'
 
-  // ========================================================================
-  // CONFIGURATION
-  // ========================================================================
-  var CONFIG = {
-    serverHost: '',
-    serverSubPath: '',
-    playIcon: 'M8,5.14L19.4,11.14L8,17.14V5.14Z',
-    buttonColor: '#00e5ff',
-  }
-
-  // ========================================================================
-  // UTILITY
-  // ========================================================================
-
   function getHost () {
-    if (CONFIG.serverHost) return CONFIG.serverHost
-    if (window.location && window.location.hostname) {
-      var h = window.location.hostname
-      if (window.location.port) h = h + ':' + window.location.port
-      return h
-    }
+    var h = window.location.host
+    if (!window.location.port && (h === 'localhost' || h === '127.0.0.1')) h += ':8111'
+    return h
   }
-
-  function buildShokoUrl (playlistValue) {
-    var host = getHost()
-    var hasPort = /:\d+$/.test(host)
-    if (!hasPort && (host === 'localhost' || host === '127.0.0.1')) host += ':8111'
-    var sub = CONFIG.serverSubPath ? '/' + CONFIG.serverSubPath.replace(/^\/+|\/+$/g, '') : ''
-    return 'shoko://' + host + sub + '/play?playlist=' + playlistValue
-  }
-
-  function createPlayButton (shokoUrl, title, extraClass) {
-    var btn = document.createElement('button')
-    btn.className = 'shoko-play-btn ' + extraClass
-    btn.title = title
-    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:1.5rem;height:1.5rem;fill:currentColor"><path d="' + CONFIG.playIcon + '"></path></svg>'
-    btn.addEventListener('click', function (e) {
-      e.preventDefault()
-      e.stopPropagation()
-      window.location.href = shokoUrl
-    })
-    return btn
-  }
-
-  // ========================================================================
-  // CSS
-  // ========================================================================
 
   function injectCSS () {
     var s = document.createElement('style')
     s.textContent =
       '.shoko-play-btn{' +
       'position:absolute;z-index:30;border:none;border-radius:50%;' +
-      'background:transparent;color:' + CONFIG.buttonColor + ';cursor:pointer;' +
+      'background:transparent;color:#00e5ff;cursor:pointer;' +
       'display:flex;align-items:center;justify-content:center;outline:none;' +
       'transition:transform .15s ease,color .15s ease,background .15s ease;' +
       '}' +
@@ -76,21 +34,24 @@
     document.head.appendChild(s)
   }
 
-  // ========================================================================
-  // CORE: inject into ALL overlay divs
-  // ========================================================================
-
   function processAll () {
     document.querySelectorAll('div.bg-panel-background-poster-overlay').forEach(function (overlay) {
       if (overlay.querySelector('.shoko-play-btn')) return
 
       var link = overlay.closest('a[href*="/series/"]')
       if (link) {
-        var href = link.getAttribute('href') || ''
-        var m = href.match(/\/series\/(\d+)/)
+        var m = (link.getAttribute('href') || '').match(/\/series\/(\d+)/)
         var seriesId = m ? +m[1] : null
         if (seriesId) {
-          var btn = createPlayButton(buildShokoUrl('s' + seriesId), 'Play series with Shoko Companion', 'shoko-center-btn')
+          var btn = document.createElement('button')
+          btn.className = 'shoko-play-btn shoko-center-btn'
+          btn.title = 'Play series with Shoko Companion'
+          btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:1.5rem;height:1.5rem;fill:currentColor"><path d="M8,5.14L19.4,11.14L8,17.14V5.14Z"></path></svg>'
+          btn.addEventListener('click', function (e) {
+            e.preventDefault()
+            e.stopPropagation()
+            window.location.href = 'shoko://' + getHost() + '/play?playlist=s' + seriesId
+          })
           overlay.appendChild(btn)
         }
         return
@@ -102,11 +63,18 @@
         if (details) {
           var a = details.querySelector("a[href*='anidb.net/episode/']")
           if (a) {
-            var href = a.getAttribute('href') || ''
-            var m = href.match(/\/episode\/(\d+)/)
+            var m = (a.getAttribute('href') || '').match(/\/episode\/(\d+)/)
             var anidbEpId = m ? +m[1] : null
             if (anidbEpId) {
-              var btn = createPlayButton(buildShokoUrl('e' + anidbEpId), 'Play episode with Shoko Companion', 'shoko-right-btn')
+              var btn = document.createElement('button')
+              btn.className = 'shoko-play-btn shoko-right-btn'
+              btn.title = 'Play episode with Shoko Companion'
+              btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:1.5rem;height:1.5rem;fill:currentColor"><path d="M8,5.14L19.4,11.14L8,17.14V5.14Z"></path></svg>'
+              btn.addEventListener('click', function (e) {
+                e.preventDefault()
+                e.stopPropagation()
+                window.location.href = 'shoko://' + getHost() + '/play?playlist=e' + anidbEpId
+              })
               overlay.appendChild(btn)
             }
           }
@@ -115,24 +83,14 @@
     })
   }
 
-  // ========================================================================
-  // INIT
-  // ========================================================================
-
   var _debounceTimer = null
-  function scheduleProcess () {
-    if (_debounceTimer) clearTimeout(_debounceTimer)
-    _debounceTimer = setTimeout(processAll, 250)
-  }
-
   function init () {
     injectCSS()
     processAll()
-
-    new MutationObserver(scheduleProcess).observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
+    new MutationObserver(function () {
+      if (_debounceTimer) clearTimeout(_debounceTimer)
+      _debounceTimer = setTimeout(processAll, 250)
+    }).observe(document.body, { childList: true, subtree: true })
   }
 
   if (document.readyState === 'loading') {

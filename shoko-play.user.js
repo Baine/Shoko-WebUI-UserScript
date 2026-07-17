@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Shoko Play with Companion
-// @namespace    https://github.com/<user>/Shoko-WebUI-UserScript
+// @namespace    https://github.com/Baine/Shoko-WebUI-UserScript
 // @version      1.2.0
 // @description  Adds play buttons to Shoko WebUI that open shows/episodes via the Shoko Companion (shoko: URL scheme)
 // @match        *://*/webui/*
